@@ -11,7 +11,7 @@ import json
 import requests
 
 params = {
-    'activate': True,
+    'activate': False,
     'speaker': '默认模型',
     'language': '默认语言',
     'speech_key': None,
@@ -101,13 +101,6 @@ def output_modifier(string):
     This function is applied to the model outputs.
     """
 
-    global model, current_params, streaming_state
-
-    for i in params:
-        if params[i] != current_params[i]:
-            model = load_synth()
-            current_params = params.copy()
-            break
 
     if not params['activate']:
         return string
@@ -125,16 +118,23 @@ def output_modifier(string):
 
         data = json.dumps({"text":string})#转换为json字符串
         headers = {"Content-Type":"application/json"}#指定提交的是json
-        r = requests.post(f'{params["apiurl"]}',data=data,headers=headers)
+        try:
+            r = requests.post(f'{params["apiurl"]}',data=data,headers=headers)
 
-        with open(output_file, 'wb') as audio_file:
-            audio_file.write(r.content)
+            with open(output_file, 'wb') as audio_file:
+                audio_file.write(r.content)
 
-        
-        autoplay = 'autoplay' if params['autoplay'] else ''
-        string = f'<audio src="file/{output_file.as_posix()}" controls {autoplay}></audio>'
-        if params['show_text']:
-            string += f'\n\n{original_string}'
+            
+            autoplay = 'autoplay' if params['autoplay'] else ''
+            string = f'<audio src="file/{output_file.as_posix()}" controls {autoplay}></audio>'
+            if params['show_text']:
+                string += f'\n\n{original_string}'
+
+        except Exception as e:
+            print(str(e))
+            # string += f'\n\n{original_string}'
+            pass
+
 
     shared.processing_message = "*Is typing...*"
     return string
